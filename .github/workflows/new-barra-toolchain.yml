@@ -1,0 +1,31 @@
+name: New Barra Pro Android toolchain
+on:
+  push:
+    branches: ['new/yabpos-barra-pro-android-20261104']
+  pull_request:
+    branches: [main]
+    paths: ['.github/workflows/new-barra-toolchain.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  tools:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Collect Android compiler tools without restaurant access
+        run: |
+          set -euo pipefail
+          mkdir -p toolchain
+          sdk="${ANDROID_HOME:-$ANDROID_SDK_ROOT}"
+          bt="$(find "$sdk/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)"
+          cp "$sdk/platforms/android-35/android.jar" toolchain/android.jar
+          cp -a "$bt" toolchain/build-tools
+          curl --fail --retry 2 -L https://repo.maven.apache.org/maven2/org/json/json/20240303/json-20240303.jar -o toolchain/json.jar
+          printf 'Android platform 35; build-tools %s\n' "$bt" > toolchain/VERSIONS.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: new-barra-android-toolchain
+          path: toolchain/
+          retention-days: 1
+          if-no-files-found: error
